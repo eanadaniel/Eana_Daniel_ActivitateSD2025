@@ -1,0 +1,98 @@
+#define _CRT_SECURE_NO_WARNINGS
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+// Structura Editura
+//Am ales Editura, deoarece numele meu este Eana Daniel. 
+struct Editura {
+    int cod;
+    int nrCarti;
+    char* denumire;
+    float* preturi;
+};
+
+// Funcție pentru inițializarea unei edituri
+struct Editura initializare(int cod, int nrCarti, const char* denumire, float* preturi) {
+    struct Editura ed;
+    ed.cod = cod;
+    ed.nrCarti = nrCarti;
+    ed.denumire = (char*)malloc(sizeof(char) * (strlen(denumire) + 1));
+    strcpy(ed.denumire, denumire);
+
+    ed.preturi = (float*)malloc(sizeof(float) * nrCarti);
+    for (int i = 0; i < nrCarti; i++) {
+        ed.preturi[i] = preturi[i];
+    }
+    return ed;
+}
+
+// Funcție pentru citirea unei edituri de la tastatură
+struct Editura citireEditura() {
+    struct Editura ed;
+    printf("Introdu codul editurii: ");
+    scanf("%d", &ed.cod);
+
+    printf("Introdu numarul de carti: ");
+    scanf("%d", &ed.nrCarti);
+    getchar();
+
+    char buffer[100];
+    printf("Introdu denumirea editurii: ");
+    fgets(buffer, sizeof(buffer), stdin);
+    buffer[strcspn(buffer, "\n")] = 0;
+
+    ed.denumire = (char*)malloc(strlen(buffer) + 1);
+    strcpy(ed.denumire, buffer);
+
+    ed.preturi = (float*)malloc(sizeof(float) * ed.nrCarti);
+    for (int i = 0; i < ed.nrCarti; i++) {
+        printf("Introdu pretul cartii %d: ", i + 1);
+        scanf("%f", &ed.preturi[i]);
+    }
+    return ed;
+}
+
+// Funcție pentru afișarea unei edituri
+void afisare(struct Editura ed) {
+    printf("%d. Editura %s are %d carti disponibile:\n", ed.cod, ed.denumire, ed.nrCarti);
+    for (int i = 0; i < ed.nrCarti; i++) {
+        printf("  - Pret carte %d: %.2f RON\n", i + 1, ed.preturi[i]);
+    }
+}
+
+// Funcție pentru calculul prețului mediu al cărților
+float calculMediePret(struct Editura ed) {
+    float suma = 0;
+    for (int i = 0; i < ed.nrCarti; i++) {
+        suma += ed.preturi[i];
+    }
+    return (ed.nrCarti > 0) ? suma / ed.nrCarti : 0;
+}
+
+// Funcție pentru modificarea denumirii unei edituri
+void modificaDenumire(struct Editura* ed, const char* nouaDenumire) {
+    free(ed->denumire);
+    ed->denumire = (char*)malloc(sizeof(char) * (strlen(nouaDenumire) + 1));
+    strcpy(ed->denumire, nouaDenumire);
+}
+
+// Funcție pentru eliberarea memoriei
+void dezalocare(struct Editura* ed) {
+    free(ed->denumire);
+    free(ed->preturi);
+}
+
+int main() {
+    struct Editura ed = citireEditura();
+
+    afisare(ed);
+    printf("\nPretul mediu al cartilor: %.2f RON\n", calculMediePret(ed));
+
+    printf("\nModificare denumire editura:\n");
+    modificaDenumire(&ed, "Polirom");
+    afisare(ed);
+
+    dezalocare(&ed);
+    return 0;
+}
