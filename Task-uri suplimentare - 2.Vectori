@@ -1,0 +1,153 @@
+#define _CRT_SECURE_NO_WARNINGS
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+// Structura Editura
+//Am ales Editura, deoarece numele meu este Eana Daniel. 
+typedef struct Editura Editura;
+struct Editura{
+    int cod;
+    int nrCarti;
+    char* denumire;
+    float* preturi;
+};
+
+Editura initializare(int cod, int nrCarti, const char* denumire, float* preturi) {
+    Editura ed;
+
+    ed.cod = cod;
+    ed.nrCarti = nrCarti;
+
+    ed.denumire = (char*)malloc(strlen(denumire) + 1);
+    if (!ed.denumire) {
+        printf("Eroare alocare memorie pentru denumire!\n");
+        exit(EXIT_FAILURE);
+    }
+    strcpy(ed.denumire, denumire);
+
+    ed.preturi = (float*)malloc(sizeof(float) * nrCarti);
+    if (!ed.preturi) {
+        printf("Eroare alocare memorie pentru preturi!\n");
+        free(ed.denumire);
+        exit(EXIT_FAILURE);
+    }
+
+    for (int i = 0; i < nrCarti; i++) {
+        ed.preturi[i] = preturi[i];
+    }
+
+    return ed;
+}
+
+// Afișează detaliile unei edituri
+void afisare(Editura ed) {
+    printf("Editura %s (Cod: %d) are %d carti:\n", ed.denumire, ed.cod, ed.nrCarti);
+
+    for (int i = 0; i < ed.nrCarti; i++) {
+        printf("  - Pret carte %d: %.2f RON\n", i + 1, ed.preturi[i]);
+    }
+}
+
+// Copiază editurile care au mai mult de un anumit număr de cărți
+Editura* copiazaEdituriCuMaiMulteCarti(Editura* vector, int nrElemente, int nrMinimCarti, int* dimensiuneNou) {
+    *dimensiuneNou = 0;
+
+    for (int i = 0; i < nrElemente; i++) {
+        if (vector[i].nrCarti >= nrMinimCarti) {
+            (*dimensiuneNou)++;
+        }
+    }
+
+    Editura* vectorNou = (Editura*)malloc(sizeof(Editura) * (*dimensiuneNou));
+
+    int k = 0;
+    for (int i = 0; i < nrElemente; i++) {
+        if (vector[i].nrCarti >= nrMinimCarti) {
+            vectorNou[k] = initializare(vector[i].cod, vector[i].nrCarti, vector[i].denumire, vector[i].preturi);
+            k++;
+        }
+    }
+
+    return vectorNou;
+}
+
+// Concatenează două vectori de edituri
+Editura* concateneazaVectori(Editura* vector1, int dim1, Editura* vector2, int dim2, int* dimNou) {
+    *dimNou = dim1 + dim2;
+
+    Editura* vectorNou = (Editura*)malloc(sizeof(Editura) * (*dimNou));
+    
+
+    for (int i = 0; i < dim1; i++) {
+        vectorNou[i] = initializare(vector1[i].cod, vector1[i].nrCarti, vector1[i].denumire, vector1[i].preturi);
+    }
+
+    for (int i = 0; i < dim2; i++) {
+        vectorNou[dim1 + i] = initializare(vector2[i].cod, vector2[i].nrCarti, vector2[i].denumire, vector2[i].preturi);
+    }
+
+    return vectorNou;
+}
+
+// Dezalocă memoria alocată pentru un vector de edituri
+void dezalocare(Editura** vector, int* nrElemente) {
+    if (!vector || !(*vector) || !nrElemente) {
+        return;
+    }
+
+    for (int i = 0; i < *nrElemente; i++) {
+        free((*vector)[i].denumire);
+        free((*vector)[i].preturi);
+    }
+
+    free(*vector);
+    *vector = NULL;
+    *nrElemente = 0;
+}
+
+int main() {
+    Editura* edituri = NULL;
+    int nrEdituri = 3;
+
+    edituri = (Editura*)malloc(sizeof(Editura) * nrEdituri);
+
+    float preturi1[] = { 50.0, 75.0, 100.0 };
+    edituri[0] = initializare(1, 3, "Editura XYZ", preturi1);
+
+    float preturi2[] = { 30.0, 40.0 };
+    edituri[1] = initializare(2, 2, "Editura ABC", preturi2);
+
+    float preturi3[] = { 80.0, 120.0, 90.0 };
+    edituri[2] = initializare(3, 3, "Editura DEF", preturi3);
+
+    printf("Edituri inițiale:\n");
+    for (int i = 0; i < nrEdituri; i++) {
+        afisare(edituri[i]);
+    }
+
+    Editura* edituriMaiMulteCarti = NULL;
+    int nrEdituriMaiMulteCarti = 0;
+    edituriMaiMulteCarti = copiazaEdituriCuMaiMulteCarti(edituri, nrEdituri, 2, &nrEdituriMaiMulteCarti);
+
+    printf("\nEdituri cu mai mult de 2 carti:\n");
+    for (int i = 0; i < nrEdituriMaiMulteCarti; i++) {
+        afisare(edituriMaiMulteCarti[i]);
+    }
+
+    Editura* edituriConcatenate = NULL;
+    int nrEdituriConcatenate = 0;
+    edituriConcatenate = concateneazaVectori(edituri, nrEdituri, edituriMaiMulteCarti, nrEdituriMaiMulteCarti, &nrEdituriConcatenate);
+
+    printf("\nEdituri concatenate:\n");
+    for (int i = 0; i < nrEdituriConcatenate; i++) {
+        afisare(edituriConcatenate[i]);
+    }
+
+    // Dezalocare memorie
+    dezalocare(&edituri, &nrEdituri);
+    dezalocare(&edituriMaiMulteCarti, &nrEdituriMaiMulteCarti);
+    dezalocare(&edituriConcatenate, &nrEdituriConcatenate);
+
+    return 0;
+}
