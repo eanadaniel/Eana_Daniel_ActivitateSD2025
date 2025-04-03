@@ -1,0 +1,104 @@
+#define _CRT_SECURE_NO_WARNINGS
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+
+typedef struct {
+    int cod;
+    int nrCarti;
+    char* denumire;
+    float* preturi;
+} Editura;
+
+// Citire o singură editură din fișier
+Editura citireEdituraDinFisier(FILE* file) {
+    char buffer[200];
+    char sep[3] = ",\n";
+    if (!fgets(buffer, 200, file)) {
+        Editura ed = { 0, 0, NULL, NULL };
+        return ed;
+    }
+
+    char* aux;
+    Editura ed;
+
+    aux = strtok(buffer, sep);
+    ed.denumire = malloc(strlen(aux) + 1);
+    strcpy(ed.denumire, aux);
+
+    ed.nrCarti = atoi(strtok(NULL, sep));
+    ed.preturi = (float*)malloc(sizeof(float) * ed.nrCarti);
+
+    for (int i = 0; i < ed.nrCarti; i++) {
+        ed.preturi[i] = atof(strtok(NULL, sep));
+    }
+
+    return ed;
+}
+
+// Citire lista de edituri din fișier
+Editura* citireListaEdituriDinFisier(const char* numeFisier, int* nrEdituri) {
+    FILE* file = fopen(numeFisier, "r");
+
+    fscanf(file, "%d\n", nrEdituri);
+    Editura* edituri = (Editura*)malloc(sizeof(Editura) * (*nrEdituri));
+
+    for (int i = 0; i < *nrEdituri; i++) {
+        edituri[i] = citireEdituraDinFisier(file);
+    }
+
+    fclose(file);
+    return edituri;
+}
+
+// Salvare unui obiect in fisier
+void salvareObiect(Editura ed, const char* numeFisier) {
+    FILE* file = fopen(numeFisier, "a");
+    if (!file) {
+        printf("Eroare la deschiderea fisierului!\n");
+        return;
+    }
+    fprintf(file, "%s,%d", ed.denumire, ed.nrCarti);
+    for (int i = 0; i < ed.nrCarti; i++) {
+        fprintf(file, ",%.2f", ed.preturi[i]);
+    }
+    fprintf(file, "\n");
+    fclose(file);
+}
+
+// Salvare vector de obiecte in fisier
+void salvareVector(Editura* edituri, int nrEdituri, const char* numeFisier) {
+    FILE* file = fopen(numeFisier, "w");
+    if (!file) {
+        printf("Eroare la deschiderea fisierului!\n");
+        return;
+    }
+    fprintf(file, "%d\n", nrEdituri);
+    for (int i = 0; i < nrEdituri; i++) {
+        salvareObiect(edituri[i], numeFisier);
+    }
+    fclose(file);
+}
+
+int main() {
+    int nrEdituri;
+    Editura* edituri = citireListaEdituriDinFisier("edituri.txt", &nrEdituri);
+
+    printf("Edituri citite din fisier:\n\n");
+    for (int i = 0; i < nrEdituri; i++) {
+        printf("%s, %d carti\n", edituri[i].denumire, edituri[i].nrCarti);
+    }
+
+    // Salvare într-un alt fișier
+    salvareVector(edituri, nrEdituri, "edituri_out.txt");
+
+    // Eliberare memorie
+    for (int i = 0; i < nrEdituri; i++) {
+        free(edituri[i].denumire);
+        free(edituri[i].preturi);
+    }
+    free(edituri);
+
+    return 0;
+}
