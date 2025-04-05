@@ -1,0 +1,308 @@
+#define _CRT_SECURE_NO_WARNINGS
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+// Task suplimentar lista simpla
+struct StructuraMasina {
+    int id;
+    int nrUsi;
+    float pret;
+    char* model;
+    char* numeSofer;
+    unsigned char serie;
+};
+typedef struct StructuraMasina Masina;
+typedef struct Nod Nod;
+
+struct Nod {
+    Masina info;
+    Nod* next;
+};
+
+// Functie pentru citirea unei masini din fisier
+Masina citireMasinaDinFisier(FILE* file) {
+    char buffer[100];
+    char sep[3] = ",\n";
+    fgets(buffer, 100, file);
+    char* aux;
+    Masina m1;
+    aux = strtok(buffer, sep);
+    m1.id = atoi(aux);
+    m1.nrUsi = atoi(strtok(NULL, sep));
+    m1.pret = atof(strtok(NULL, sep));
+    aux = strtok(NULL, sep);
+    m1.model = malloc(strlen(aux) + 1);
+    strcpy_s(m1.model, strlen(aux) + 1, aux);
+
+    aux = strtok(NULL, sep);
+    m1.numeSofer = malloc(strlen(aux) + 1);
+    strcpy_s(m1.numeSofer, strlen(aux) + 1, aux);
+
+    m1.serie = *strtok(NULL, sep);
+    return m1;
+}
+
+// Functie pentru afisarea detaliilor unei masini
+void afisareMasina(Masina masina) {
+    printf("Id: %d\n", masina.id);
+    printf("Nr. usi : %d\n", masina.nrUsi);
+    printf("Pret: %.2f\n", masina.pret);
+    printf("Model: %s\n", masina.model);
+    printf("Nume sofer: %s\n", masina.numeSofer);
+    printf("Serie: %c\n\n", masina.serie);
+}
+
+// Functie pentru afisarea tuturor masinilor din lista
+void afisareListaMasini(Nod* lista) {
+    while (lista) {
+        afisareMasina(lista->info);
+        lista = lista->next;
+    }
+}
+
+// Functie pentru adaugarea unei masini la sfarsitul listei
+void adaugaMasinaInLista(Nod** lista, Masina masinaNoua) {
+    Nod* nou = (Nod*)malloc(sizeof(Nod));
+    nou->info = masinaNoua;
+    nou->next = NULL;
+    if ((*lista) == NULL) {
+        (*lista) = nou;
+    }
+    else {
+        Nod* temp = *lista;
+        while (temp->next) {
+            temp = temp->next;
+        }
+        temp->next = nou;
+    }
+}
+
+// Functie pentru adaugarea unei masini la inceputul listei
+void adaugaLaInceputInLista(Nod** lista, Masina masinaNoua) {
+    Nod* nou = (Nod*)malloc(sizeof(Nod));
+    nou->info = masinaNoua;
+    nou->next = *lista;
+    *lista = nou;
+}
+
+// Functie pentru citirea unei liste de masini din fisier
+Nod* citireListaMasiniDinFisier(const char* numeFisier) {
+    FILE* file = fopen(numeFisier, "r");
+    Nod* lista = NULL;
+    while (!feof(file)) {
+        adaugaMasinaInLista(&lista, citireMasinaDinFisier(file));
+    }
+    fclose(file);
+    return lista;
+}
+
+// Functie pentru eliberarea memoriei alocate pentru lista de masini
+void dezalocareListaMasini(Nod** lista) {
+    while (*lista) {
+        Nod* p = (*lista);
+        (*lista) = (*lista)->next;
+        free(p->info.model);
+        free(p->info.numeSofer);
+        free(p);
+    }
+}
+
+// Functie pentru calcularea pretului mediu al masinilor din lista
+float calculeazaPretMediu(Nod* lista) {
+    float s = 0;
+    int k = 0;
+    while (lista) {
+        s += lista->info.pret;
+        k++;
+        lista = lista->next;
+    }
+    return (k > 0) ? s / k : 0;
+}
+
+// Functie pentru stergerea masinilor cu o serie specificata
+void stergeMasiniDinSeria(Nod** lista, char serieCautata) {
+    while (*lista != NULL && (*lista)->info.serie == serieCautata) {
+        Nod* temp = (*lista);
+        (*lista) = temp->next;
+        free(temp->info.model);
+        free(temp->info.numeSofer);
+        free(temp);
+    }
+    Nod* p = (*lista);
+    while (p != NULL) {
+        while (p->next && p->next->info.serie != serieCautata) {
+            p = p->next;
+        }
+        if (p->next != NULL) {
+            Nod* temp = p->next;
+            p->next = temp->next;
+            free(temp->info.model);
+            free(temp->info.numeSofer);
+            free(temp);
+        }
+        else {
+            p = p->next;
+        }
+    }
+}
+
+// Functie pentru calcularea pretului total al masinilor unui sofer
+float calculeazaPretulMasinilorUnuiSofer(Nod* lista, const char* numeSofer) {
+    float suma = 0;
+    while (lista) {
+        if (strcmp(lista->info.numeSofer, numeSofer) == 0) {
+
+            suma += lista->info.pret;
+        }
+        lista = lista->next;
+    }
+    return suma;
+}
+
+// Sterge un nod de pe o pozitie data
+void stergeDePePozitie(Nod** lista, int poz) {
+    if (poz < 0 || *lista == NULL) return;
+
+    Nod* temp = *lista;
+    if (poz == 0) {
+        *lista = temp->next;
+        free(temp->info.model);
+
+        free(temp->info.numeSofer);
+        free(temp);
+        return;
+    }
+
+    for (int i = 0; temp && i < poz - 1; i++)
+        temp = temp->next;
+
+    if (temp == NULL || temp->next == NULL) return;
+
+    Nod* deSters = temp->next;
+    temp->next = deSters->next;
+    free(deSters->info.model);
+    free(deSters->info.numeSofer);
+    free(deSters);
+}
+
+// Insereaza o masina sortata crescator dupa pret
+void inserareSortata(Nod** lista, Masina m) {
+    Nod* nou = (Nod*)malloc(sizeof(Nod));
+    nou->info = m;
+
+    nou->next = NULL;
+
+    if (*lista == NULL || m.pret < (*lista)->info.pret) {
+        nou->next = *lista;
+        *lista = nou;
+        return;
+    }
+
+    Nod* temp = *lista;
+    while (temp->next && temp->next->info.pret < m.pret)
+        temp = temp->next;
+
+    nou->next = temp->next;
+    temp->next = nou;
+}
+
+// Functie care returneaza un vector cu masinile care au mai mult de `pragUsi` usi
+Masina* masiniCuMaiMulteUsi(Nod* lista, int* dim, int pragUsi) {
+    *dim = 0;
+    Nod* temp = lista;
+
+    while (temp) {
+        if (temp->info.nrUsi > pragUsi)
+            (*dim)++;
+        temp = temp->next;
+    }
+
+    if (*dim == 0) return NULL;
+
+    Masina* vector = (Masina*)malloc((*dim) * sizeof(Masina));
+    temp = lista;
+    int i = 0;
+
+    while (temp) {
+        if (temp->info.nrUsi > pragUsi) {
+            vector[i].id = temp->info.id;
+            vector[i].nrUsi = temp->info.nrUsi;
+            vector[i].pret = temp->info.pret;
+
+            vector[i].model = (char*)malloc(strlen(temp->info.model) + 1);
+            strcpy(vector[i].model, temp->info.model);
+
+            vector[i].numeSofer = (char*)malloc(strlen(temp->info.numeSofer) + 1);
+            strcpy(vector[i].numeSofer, temp->info.numeSofer);
+
+            vector[i].serie = temp->info.serie;
+            i++;
+        }
+        temp = temp->next;
+    }
+
+    return vector;
+}
+
+// Interschimba doua masini de pe pozitii date
+void interschimbaPozitii(Nod* lista, int p1, int p2) {
+    if (p1 == p2) return;
+
+
+
+    Nod* n1 = NULL, * n2 = NULL;
+    int i = 0;
+    Nod* temp = lista;
+
+    while (temp) {
+        if (i == p1) n1 = temp;
+        if (i == p2) n2 = temp;
+        temp = temp->next;
+        i++;
+    }
+
+
+    if (n1 && n2) {
+        Masina aux = n1->info;
+        n1->info = n2->info;
+        n2->info = aux;
+    }
+}
+
+int main() {
+    // Citirea masinilor din fisier
+    Nod* lista = citireListaMasiniDinFisier("masini.txt");
+
+
+
+
+    // Afișarea listei
+    printf("==== Lista initiala ====\n");
+    afisareListaMasini(lista);
+
+    // Ștergerea unei mașini de pe poziția 3
+    printf("\n==== Stergere de pe pozitia 3 ====\n");
+    stergeDePePozitie(&lista, 3);
+    afisareListaMasini(lista);
+
+    // Vector cu masini care au mai mult de 4 usi
+    printf("\n==== Vector cu masini care au mai mult de 4 usi ====\n");
+    int dim = 0;
+    Masina* vector = masiniCuMaiMulteUsi(lista, &dim, 4);
+    for (int i = 0; i < dim; i++) {
+        afisareMasina(vector[i]);
+        free(vector[i].model);
+        free(vector[i].numeSofer);
+    }
+    free(vector);
+
+    // Interschimbarea mașinilor de pe pozițiile 1 și 5
+    printf("\n==== Interschimbare pozitii 1 si 5 ====\n");
+    interschimbaPozitii(lista, 1, 5);
+    afisareListaMasini(lista);
+
+    // Eliberarea memoriei alocate
+    dezalocareListaMasini(&lista);
+    return 0;
+}
