@@ -1,0 +1,221 @@
+#define _CRT_SECURE_NO_WARNINGS
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+// Structura pentru masina
+struct StructuraMasina {
+	int id;
+	int nrUsi;
+	float pret;
+	char* model;
+	char* numeSofer;
+	unsigned char serie;
+};
+typedef struct StructuraMasina Masina;
+
+// Citire masina din fisier
+Masina citesteMasinaDinFisier(FILE* fisier) {
+	char buffer[100];
+	char separatori[3] = ",\n";
+	fgets(buffer, 100, fisier);
+	char* aux;
+	Masina m;
+	aux = strtok(buffer, separatori);
+	m.id = atoi(aux);
+	m.nrUsi = atoi(strtok(NULL, separatori));
+	m.pret = atof(strtok(NULL, separatori));
+
+	aux = strtok(NULL, separatori);
+	m.model = malloc(strlen(aux) + 1);
+	strcpy_s(m.model, strlen(aux) + 1, aux);
+
+	aux = strtok(NULL, separatori);
+	m.numeSofer = malloc(strlen(aux) + 1);
+	strcpy_s(m.numeSofer, strlen(aux) + 1, aux);
+
+	m.serie = *strtok(NULL, separatori);
+	return m;
+}
+
+// Afisare masina
+void afiseazaMasina(Masina masina) {
+	printf("Id: %d\n", masina.id);
+	printf("Nr. usi: %d\n", masina.nrUsi);
+	printf("Pret: %.2f\n", masina.pret);
+	printf("Model: %s\n", masina.model);
+	printf("Nume sofer: %s\n", masina.numeSofer);
+	printf("Serie: %c\n\n", masina.serie);
+}
+
+// STIVA (LSI)
+
+struct NodStiva {
+	Masina info;
+	struct NodStiva* next;
+};
+typedef struct NodStiva NodStiva;
+
+void puneInStiva(NodStiva** varf, Masina masina) {
+	NodStiva* nou = (NodStiva*)malloc(sizeof(NodStiva));
+	nou->info = masina;
+	nou->next = (*varf);
+	(*varf) = nou;
+}
+
+Masina scoateDinStiva(NodStiva** varf) {
+	Masina masina;
+	if ((*varf) != NULL) {
+		NodStiva* aux = (*varf);
+		masina = (*varf)->info;
+		(*varf) = (*varf)->next;
+		free(aux);
+	}
+	else {
+		masina.id = -1;
+	}
+	return masina;
+}
+
+unsigned char stivaEsteGoala(NodStiva* varf) {
+	return varf == NULL;
+}
+
+NodStiva* citesteStivaDinFisier(const char* numeFisier) {
+	FILE* f = fopen(numeFisier, "r");
+	NodStiva* varf = NULL;
+	while (!feof(f)) {
+		puneInStiva(&varf, citesteMasinaDinFisier(f));
+	}
+	fclose(f);
+	return varf;
+}
+
+void dezalocaStiva(NodStiva** varf) {
+	while (!stivaEsteGoala((*varf))) {
+		Masina m = scoateDinStiva(varf);
+		free(m.model);
+		free(m.numeSofer);
+	}
+}
+
+int dimensiuneStiva(NodStiva* varf) {
+	int marime = 0;
+	while (varf != NULL) {
+		marime++;
+		varf = varf->next;
+	}
+	return marime;
+}
+
+// COADA (LDI)
+
+struct NodCoada {
+	Masina info;
+	struct NodCoada* next;
+	struct NodCoada* prev;
+};
+typedef struct NodCoada NodCoada;
+
+struct Coada {
+	NodCoada* prim;
+	NodCoada* ultim;
+};
+typedef struct Coada Coada;
+
+void adaugaInCoada(Coada* coada, Masina masina) {
+	NodCoada* nou = (NodCoada*)malloc(sizeof(NodCoada));
+	nou->info = masina;
+	nou->next = coada->prim;
+	nou->prev = NULL;
+	if (coada->prim == NULL) {
+		coada->prim = nou;
+		coada->ultim = nou;
+	}
+	else {
+		coada->prim->prev = nou;
+		coada->prim = nou;
+	}
+}
+
+Masina scoateDinCoada(Coada* coada) {
+	if (coada->ultim == NULL) {
+		Masina m;
+		m.id = -1;
+		return m;
+	}
+	else {
+		Masina m = coada->ultim->info;
+		if (coada->ultim->prev == NULL) {
+			coada->prim = NULL;
+			coada->ultim = NULL;
+		}
+		else {
+			NodCoada* aux = coada->ultim;
+			coada->ultim = aux->prev;
+			aux->prev->next = NULL;
+			free(aux);
+		}
+		return m;
+	}
+}
+
+Coada citesteCoadaDinFisier(const char* numeFisier) {
+	FILE* f = fopen(numeFisier, "r");
+	Coada coada;
+	coada.prim = NULL;
+	coada.ultim = NULL;
+	while (!feof(f)) {
+		adaugaInCoada(&coada, citesteMasinaDinFisier(f));
+	}
+	fclose(f);
+	return coada;
+}
+
+void dezalocaCoada(Coada* coada) {
+	while (coada->ultim != NULL) {
+		Masina m = scoateDinCoada(coada);
+		free(m.model);
+		free(m.numeSofer);
+	}
+}
+
+// Functii de procesare
+
+Masina cautaMasinaDupaID(int id /*, structura*/) {
+	// de completat în funcție de ce structură vrei să cauți
+	Masina m;
+	m.id = -1;
+	return m;
+}
+
+float calculeazaPretTotal(NodStiva** varf) {
+	float suma = 0;
+	NodStiva* temp = NULL;
+	while (!stivaEsteGoala(*varf)) {
+		Masina m = scoateDinStiva(varf);
+		suma += m.pret;
+		puneInStiva(&temp, m);
+	}
+	while (!stivaEsteGoala(temp)) {
+		puneInStiva(varf, scoateDinStiva(&temp));
+	}
+	return suma;
+}
+
+// MAIN
+
+int main() {
+	NodStiva* varf;
+	varf = citesteStivaDinFisier("masini.txt");
+
+	Masina masina = scoateDinStiva(&varf);
+	afiseazaMasina(masina);
+
+	float pretTotal = calculeazaPretTotal(&varf);
+	printf("Pretul total: %.2f\n", pretTotal);
+
+	dezalocaStiva(&varf);
+
+	return 0;
+}
